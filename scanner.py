@@ -52,8 +52,8 @@ def bullish_bat(df):
     if len(df) < 10:
         return False, None, None
 
-    low = df['Low'].rolling(3).min().iloc[-3]
-    high = df['High'].rolling(3).max().iloc[-3]
+    low = df['Low'].rolling(3).min().iloc[-3].item()
+    high = df['High'].rolling(3).max().iloc[-3].item()
 
     if low >= high:
         return False, None, None
@@ -61,12 +61,14 @@ def bullish_bat(df):
     fib_58 = high - (high - low) * 0.58
     fib_618 = high - (high - low) * 0.618
 
-    last = df.iloc[-1]
+    last_close = df['Close'].iloc[-1].item()
+    last_open = df['Open'].iloc[-1].item()
 
-    if fib_618 <= last.Close <= fib_58 and last.Close > last.Open:
+    if fib_618 <= last_close <= fib_58 and last_close > last_open:
         return True, round(fib_618, 2), round(fib_58, 2)
 
     return False, None, None
+
 
 # 🔔 SCAN LOOP
 found_any = False
