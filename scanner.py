@@ -9,9 +9,8 @@ STOCKS = [
     "HDFCBANK.NS",
     "ICICIBANK.NS"
 ]
-
-BOT_TOKEN = "PASTE_YOUR_BOT_TOKEN"
-CHAT_ID = "PASTE_YOUR_CHAT_ID"
+BOT_TOKEN ="8203480467:AAFEdb9TdfN4vOjSyewSdOQLRp9SMb_BU-A"
+CHAT_ID = "@prvweeklyHBbot"
 
 def send_alert(msg):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
