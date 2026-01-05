@@ -3,8 +3,11 @@ import pandas as pd
 import requests
 import os
 import time
+import random
 
-# 🔹 YOUR STOCK LIST
+# ===============================
+# 🔹 STOCK LIST
+# ===============================
 STOCKS = [
     "KSOLVES.NS","STELLANT.NS","SHANTIDOOT.NS","ICODEX.NS","WAAREERTL.NS",
     "SHILCHART.NS","SIGMASOLVE.NS","ONEGLOBAL.NS","SHAKTIPUMP.NS","ARROWGREEN.NS",
@@ -36,22 +39,47 @@ STOCKS = [
     "REFRACTORY.NS","KONTOR.NS","SHRIBALAJI.NS"
 ]
 
+# ===============================
 # 🔐 ENV VARIABLES
+# ===============================
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 
+# ===============================
+# 🔔 TELEGRAM ALERT
+# ===============================
 def send_alert(msg):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    requests.post(url, data={"chat_id": CHAT_ID, "text": msg})
+    requests.post(url, data={
+        "chat_id": CHAT_ID,
+        "text": msg
+    })
 
-def get_weekly(symbol):
-    df = yf.download(symbol, period="2y", interval="1wk", progress=False)
-    return df.dropna()
+# ===============================
+# 📊 BATCH FETCH (RATE LIMIT SAFE)
+# ===============================
+def fetch_batch(symbols):
+    try:
+        df = yf.download(
+            symbols,
+            period="2y",
+            interval="1wk",
+            group_by="ticker",
+            progress=False
+        )
+        return df
+    except Exception as e:
+        print("❌ Batch fetch error:", e)
+        return None
 
+# ===============================
+# 🦇 BULLISH BAT LOGIC (SAFE)
+# ===============================
 def bullish_bat(df):
-    if len(df) < 10:
+    if df is None or df.empty or len(df) < 10:
         return False, None, None
 
+    # Force scalar values
     low = df['Low'].rolling(3).min().iloc[-3].item()
     high = df['High'].rolling(3).max().iloc[-3].item()
 
@@ -69,36 +97,52 @@ def bullish_bat(df):
 
     return False, None, None
 
+# ===============================
+# 🔁 SCAN EXECUTION
+# ===============================
+BATCH_SIZE = 5        # Safe for Yahoo
+SLEEP_TIME = 8        # Seconds
 
-# 🔔 SCAN LOOP
 found_any = False
 
-for stock in STOCKS:
-    try:
-        df = get_weekly(stock)
+for i in range(0, len(STOCKS), BATCH_SIZE):
+    batch = STOCKS[i:i + BATCH_SIZE]
+    print(f"\n🔄 Fetching batch: {batch}")
 
-        # ✅ DEBUG CHECK – CONFIRM YAHOO DATA FETCH
-        if df is None or df.empty:
-            print(f"❌ {stock}: NO DATA from Yahoo")
-            continue
-        else:
-            print(f"✅ {stock}: {len(df)} weekly candles fetched from Yahoo")
+    batch_df = fetch_batch(batch)
+    if batch_df is None:
+        time.sleep(SLEEP_TIME)
+        continue
 
-        found, f618, f58 = bullish_bat(df)
+    for stock in batch:
+        try:
+            if stock not in batch_df:
+                print(f"❌ {stock}: No data returned")
+                continue
 
-        if found:
-            found_any = True
-            send_alert(
-                f"🚨 WEEKLY BULLISH BAT\n"
-                f"Stock: {stock}\n"
-                f"Entry Zone: {f618} – {f58}\n\n"
-                f"Macha! 0.58 Fib la reaction ready 🚀"
-            )
+            df = batch_df[stock].dropna()
+            print(f"✅ {stock}: {len(df)} weekly candles fetched")
 
-        time.sleep(1.2)
+            found, f618, f58 = bullish_bat(df)
 
-    except Exception as e:
-        print(f"❌ Error in {stock}: {e}")
+            if found:
+                found_any = True
+                send_alert(
+                    f"🚨 WEEKLY BULLISH BAT\n"
+                    f"Stock: {stock}\n"
+                    f"Entry Zone: {f618} – {f58}\n\n"
+                    f"Macha! 0.58 Fib la reaction ready 🚀"
+                )
 
+        except Exception as e:
+            print(f"❌ Error in {stock}: {e}")
+
+    sleep_time = SLEEP_TIME + random.randint(2, 5)
+    print(f"⏳ Sleeping {sleep_time}s to avoid Yahoo rate limit...")
+    time.sleep(sleep_time)
+
+# ===============================
+# ℹ️ FINAL MESSAGE
+# ===============================
 if not found_any:
     send_alert("ℹ️ Weekly scan done. No Bullish Bat found this week.")
