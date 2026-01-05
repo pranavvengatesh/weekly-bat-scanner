@@ -71,3 +71,9 @@ for stock in STOCKS:
 
 if not found_any:
     send_alert("ℹ️ Weekly scan done. No Bullish Bat found this week.")
+
+
+
+
+send_alert("✅ Weekly scanner deployed successfully")
+
