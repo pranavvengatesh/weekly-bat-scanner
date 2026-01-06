@@ -100,8 +100,8 @@ def bullish_bat(df):
 # ===============================
 # 🔁 SCAN EXECUTION
 # ===============================
-BATCH_SIZE = 5        # Safe for Yahoo
-SLEEP_TIME = 8        # Seconds
+BATCH_SIZE = 2        # Safe for Yahoo
+SLEEP_TIME = 12
 
 found_any = False
 
